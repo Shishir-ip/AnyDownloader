@@ -57,7 +57,7 @@ It runs **entirely on your machine** — yt-dlp is embedded as a library (not sh
 ### Option B — run from source
 
 ```bash
-git clone https://github.com/Shohidul-oss/AnyDownloader.git
+git clone https://github.com/Shishir-ip/AnyDownloader.git
 cd AnyDownloader
 pip install -e .
 python -m anydownloader

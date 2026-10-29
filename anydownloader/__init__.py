@@ -13,5 +13,5 @@ ORG_NAME = "AnyDownloader"
 __version__ = "1.0.0"
 
 # GitHub repository used for update checks (owner set at publish time).
-GITHUB_OWNER = "Shohidul-oss"  # overridden by CI via -D flag when building
+GITHUB_OWNER = "Shishir-ip"  # overridden by CI via -D flag when building
 GITHUB_REPO = "AnyDownloader"

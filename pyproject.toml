@@ -40,8 +40,8 @@ dev = [
 anydownloader = "anydownloader.app:main"
 
 [project.urls]
-Homepage = "https://github.com/Shohidul-oss/AnyDownloader"
-Issues = "https://github.com/Shohidul-oss/AnyDownloader/issues"
+Homepage = "https://github.com/Shishir-ip/AnyDownloader"
+Issues = "https://github.com/Shishir-ip/AnyDownloader/issues"
 
 [tool.setuptools.packages.find]
 include = ["anydownloader*"]
