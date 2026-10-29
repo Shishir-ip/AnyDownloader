@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "anydownloader"
+version = "1.0.0"
+description = "AnyDownloader — a polished, Apple-style video & audio downloader for Windows, powered by yt-dlp"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Shohidul Islam" }]
+keywords = ["yt-dlp", "downloader", "youtube", "video", "audio", "desktop", "pyside6"]
+classifiers = [
+    "Environment :: Win32 (MS Windows)",
+    "Environment :: X11 Applications :: Qt",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Internet",
+    "Topic :: Multimedia :: Video",
+]
+dependencies = [
+    "PySide6>=6.6",
+    "yt-dlp>=2024.3.10",
+    "imageio-ffmpeg>=0.4.9",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "pyinstaller>=6",
+    "pillow>=10",
+]
+
+[project.gui-scripts]
+anydownloader = "anydownloader.app:main"
+
+[project.urls]
+Homepage = "https://github.com/Shohidul-oss/AnyDownloader"
+Issues = "https://github.com/Shohidul-oss/AnyDownloader/issues"
+
+[tool.setuptools.packages.find]
+include = ["anydownloader*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

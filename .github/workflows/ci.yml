@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e . pytest
+      - name: Run tests (offscreen)
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: python -m pytest
+
+  build:
+    needs: test
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e . pyinstaller
+      - name: Build exe
+        run: pyinstaller AnyDownloader.spec --noconfirm --distpath build/dist --workpath build/work
+      - name: Verify exe launches (headless autotest)
+        env:
+          ANYDOWNLOADER_AUTOTEST: "1"
+          QT_QPA_PLATFORM: offscreen
+        run: ./build/dist/AnyDownloader.exe
+      - name: Rename artifact
+        run: |
+          $tag = $env:GITHUB_REF -replace 'refs/tags/', ''
+          Move-Item build/dist/AnyDownloader.exe "build/dist/AnyDownloader-$tag-windows-x64.exe"
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/dist/AnyDownloader-*-windows-x64.exe
+          generate_release_notes: true
