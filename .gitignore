@@ -28,3 +28,10 @@ desktop.ini
 
 # App runtime artifacts
 *.log
+
+# keep user downloads out of the repo
+Ruler*
+*.mp4
+*.webp
+!docs/**
+!assets/**
