@@ -140,6 +140,19 @@ class TestFfmpeg:
         exe = engine.ffmpeg_exe()
         assert exe and Path(exe).is_file()
 
-    def test_ffmpeg_location_points_at_file(self):
+    def test_ffmpeg_location_valid(self):
         opts = engine._base_options()
-        assert Path(opts["ffmpeg_location"]).is_file()
+        loc = Path(opts["ffmpeg_location"])
+        if engine.media_tools_dir():
+            assert (loc / "ffmpeg.exe").is_file() and (loc / "ffprobe.exe").is_file()
+        else:
+            assert loc.is_file()
+
+    def test_embed_thumbnail_needs_ffprobe(self):
+        from anydownloader.core.models import DownloadJob, JobOptions
+
+        job = DownloadJob(url="u", profile_id="1080p",
+                          options=JobOptions(download_dir="C:/x", embed_thumbnail=True))
+        opts = engine.build_download_options(job)
+        keys = [pp["key"] for pp in opts.get("postprocessors", [])]
+        assert ("EmbedThumbnail" in keys) == engine.ffprobe_available()

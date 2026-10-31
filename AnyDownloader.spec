@@ -4,6 +4,7 @@
 Build:  pyinstaller AnyDownloader.spec --noconfirm
 """
 import os
+from pathlib import Path
 from PyInstaller.utils.hooks import collect_all
 
 datas, binaries, hiddenimports = [], [], []
@@ -14,6 +15,11 @@ for package in ("yt_dlp", "imageio_ffmpeg"):
     hiddenimports += h
 
 block_cipher = None
+
+media_tools = Path("build/media_tools")
+for _bin in ("ffmpeg.exe", "ffprobe.exe"):
+    if (media_tools / _bin).is_file():
+        binaries.append((str(media_tools / _bin), "media_tools"))
 
 a = Analysis(
     ["run.py"],

@@ -28,6 +28,7 @@ except Exception:  # pragma: no cover
 
 # --------------------------------------------------------------------- ffmpeg
 _ffmpeg_exe_cache: Optional[str] = None
+_media_dir_cache: Optional[str] = None
 
 
 def ffmpeg_exe() -> Optional[str]:
@@ -52,8 +53,37 @@ def ffmpeg_exe() -> Optional[str]:
     return exe or None
 
 
+def media_tools_dir() -> Optional[str]:
+    """Directory holding ffmpeg.exe + ffprobe.exe side by side, or None."""
+    global _media_dir_cache
+    if _media_dir_cache is not None:
+        return _media_dir_cache or None
+    candidates = []
+    if paths.is_frozen():
+        candidates.append(Path(getattr(sys, "_MEIPASS", "")) / "media_tools")
+        candidates.append(Path(sys.executable).parent / "media_tools")
+    else:
+        candidates.append(Path(__file__).resolve().parents[2] / "build" / "media_tools")
+    for cand in candidates:
+        try:
+            if (cand / "ffmpeg.exe").is_file() and (cand / "ffprobe.exe").is_file():
+                _media_dir_cache = str(cand)
+                return _media_dir_cache
+        except OSError:
+            continue
+    _media_dir_cache = ""
+    return None
+
+
+def ffprobe_available() -> bool:
+    return media_tools_dir() is not None
+
+
 def ffmpeg_dir() -> Optional[str]:
-    """Directory containing a binary literally named ffmpeg(.exe), or None."""
+    """Directory with standard-named ffmpeg.exe (+ ffprobe when bundled)."""
+    media = media_tools_dir()
+    if media:
+        return media
     exe = ffmpeg_exe()
     if exe and Path(exe).name.lower().replace(".exe", "") == "ffmpeg":
         return str(Path(exe).parent)
@@ -117,11 +147,16 @@ def _base_options(proxy: str = "", cookies_browser: str = "", cookies_file: str 
         opts["cookiefile"] = cookies_file
     elif cookies_browser:
         opts["cookiesfrombrowser"] = (cookies_browser,)
-    ffmpeg_exe_path = ffmpeg_exe()
-    if ffmpeg_exe_path:
-        # Full binary path: imageio-ffmpeg ships a versioned filename that a
-        # directory-style ffmpeg_location would not resolve.
-        opts["ffmpeg_location"] = ffmpeg_exe_path
+    media = media_tools_dir()
+    if media:
+        # Directory with ffmpeg.exe + ffprobe.exe: lets every postprocessor run.
+        opts["ffmpeg_location"] = media
+    else:
+        exe = ffmpeg_exe()
+        if exe:
+            # Full binary path: imageio-ffmpeg ships a versioned filename that a
+            # directory-style ffmpeg_location would not resolve.
+            opts["ffmpeg_location"] = exe
     return opts
 
 
@@ -179,7 +214,9 @@ def build_download_options(job: DownloadJob) -> dict[str, Any]:
         pps.append({"key": "FFmpegMetadata", "add_metadata": True, "add_chapters": True})
     if opts.embed_thumbnail:
         opts_ydl["writethumbnail"] = True
-        pps.append({"key": "EmbedThumbnail", "already_have_thumbnail": False})
+        if ffprobe_available():
+            pps.append({"key": "EmbedThumbnail", "already_have_thumbnail": False})
+        # else: thumbnail is kept as a separate file instead of failing the job
 
     if pps:
         opts_ydl["postprocessors"] = pps
