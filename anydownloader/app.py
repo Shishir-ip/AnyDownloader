@@ -4,6 +4,7 @@ from __future__ import annotations
 import logging
 import os
 import sys
+from pathlib import Path
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QPixmap
@@ -65,6 +66,19 @@ def main() -> int:
     # CI/launch verification: exit cleanly shortly after the window is up.
     if os.environ.get("ANYDOWNLOADER_AUTOTEST") == "1":
         from PySide6.QtCore import QTimer
+
+        from anydownloader.core import engine
+        from anydownloader.core.models import DownloadJob, JobOptions
+
+        # Frozen-mode self-check: option building touches the bundled
+        # ffmpeg/ffprobe paths, which dev runs exercise differently.
+        probe_job = DownloadJob(url="https://example.com/x", profile_id="1080p",
+                                options=JobOptions(download_dir="C:/x",
+                                                   embed_thumbnail=True))
+        options = engine.build_download_options(probe_job)
+        assert engine.ffprobe_available(), "ffprobe missing in bundle"
+        assert Path(options["ffmpeg_location"]).is_dir()
+        log.info("frozen self-check OK: %s", options["ffmpeg_location"])
 
         QTimer.singleShot(1500, app.quit)
         result = app.exec()

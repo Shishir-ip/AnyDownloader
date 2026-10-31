@@ -832,7 +832,7 @@ class AnimatedSection(QWidget):
 
     @property
     def _target_height(self) -> int:
-        hint = self._content.layout().minimumSizeHint() if self._content.layout() else QSize()
+        hint = self._content.layout().minimumSize() if self._content.layout() else QSize()
         return max(hint.height() + 6, 40)
 
     def toggle(self) -> None:

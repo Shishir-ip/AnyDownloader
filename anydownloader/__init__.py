@@ -10,7 +10,7 @@ APP_TAGLINE = "Download video & audio from (almost) anywhere"
 ORG_NAME = "AnyDownloader"
 
 # Bump on release. CI tags this version when publishing.
-__version__ = "1.0.1"
+__version__ = "1.0.2"
 
 # GitHub repository used for update checks (owner set at publish time).
 GITHUB_OWNER = "Shishir-ip"  # overridden by CI via -D flag when building

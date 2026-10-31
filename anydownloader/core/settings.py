@@ -132,7 +132,7 @@ class Settings:
     def speed_limit_bytes(self) -> int:
         return utils.parse_rate_limit(self.speed_limit) or 0
 
-    def job_options(self) -> "JobOptionsLike":
+    def job_options(self) -> "JobOptions":
         """Snapshot current settings into per-job options."""
         from anydownloader.core.models import JobOptions
         return JobOptions(
