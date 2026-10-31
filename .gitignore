@@ -35,3 +35,10 @@ Ruler*
 *.webp
 !docs/**
 !assets/**
+*.mkv
+*.m4a
+*.mp3
+*.flac
+*.opus
+*.wav
+youtube.com/
