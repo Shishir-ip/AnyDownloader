@@ -1,6 +1,7 @@
 """Application bootstrap: wiring settings, engine, UI and single-instance guard."""
 from __future__ import annotations
 
+import json
 import logging
 import os
 import sys
@@ -24,18 +25,55 @@ from anydownloader.ui.thumbs import ThumbnailLoader
 log = logging.getLogger(__name__)
 
 
-def _accept_bridge_url(window: "MainWindow", url: str) -> None:
-    """Queue a link arriving from the browser extension."""
-    from anydownloader.core.models import DownloadJob
+def _accept_bridge_url(window: "MainWindow", url: str, profile_id: str = "") -> None:
+    """Queue a link arriving from the browser extension and start it now."""
+    from anydownloader.core.models import PROFILES
 
+    if profile_id not in {prof.id for prof in PROFILES}:
+        profile_id = ""
     if any(j.url == url and not j.state.is_terminal for j in window.ctx.manager.jobs):
         window.notify("Already in the queue.", "info")
         return
-    window.ctx.manager.add_urls([url])
-    if window.ctx.settings.auto_start:
-        window.ctx.manager.start_all()
+    window.ctx.manager.add_urls([url], profile_id or None)
+    window.ctx.manager.start_all()  # an explicit user action always starts
     window.notify("Sent from browser: " + url[:60], "success")
     window.switch_page("queue")
+
+
+def urls_from_args(args: list) -> list:
+    """Extract plain URLs and anydownloader://add?url=... links from argv."""
+    from urllib.parse import parse_qs, urlparse
+
+    urls: list = []
+    for raw in args[1:]:
+        raw = raw.strip()
+        if raw.startswith("anydownloader://"):
+            parsed = urlparse(raw)
+            host_or_path = (parsed.netloc + parsed.path).strip("/").lower()
+            if host_or_path == "add":
+                for value in parse_qs(parsed.query).get("url", []):
+                    value = value.strip()
+                    if value.startswith(("http://", "https://")) and value not in urls:
+                        urls.append(value)
+        elif raw.startswith(("http://", "https://")) and raw not in urls:
+            urls.append(raw)
+    return urls
+
+
+def _forward_to_running_instance(urls: list, port: int) -> None:
+    """Secondary instance: hand our URLs to the running app's bridge."""
+    import urllib.request
+
+    for url in urls:
+        try:
+            req = urllib.request.Request(
+                f"http://127.0.0.1:{port}/add",
+                data=json.dumps({"url": url}).encode(),
+                headers={"Content-Type": "application/json"},
+            )
+            urllib.request.urlopen(req, timeout=3)
+        except Exception:
+            pass
 
 
 def _single_instance_guard() -> bool:
@@ -51,6 +89,9 @@ def _single_instance_guard() -> bool:
 def main() -> int:
     paths.setup_logging()
     if not _single_instance_guard():
+        cli_urls = urls_from_args(sys.argv)
+        if cli_urls:
+            _forward_to_running_instance(cli_urls, settings.bridge_port)
         print("AnyDownloader is already running.", file=sys.stderr)
         return 0
 
@@ -77,14 +118,21 @@ def main() -> int:
     window = MainWindow(ctx)
     window.show()
 
+    cli_urls = urls_from_args(sys.argv)
+    if cli_urls:
+        from PySide6.QtCore import QTimer
+
+        QTimer.singleShot(
+            300, lambda: (ctx.manager.add_urls(cli_urls), ctx.manager.start_all())
+        )
+        log.info("queued %d link(s) from command line", len(cli_urls))
+
     if settings.bridge_enabled:
         from anydownloader.core.bridge import HttpBridge
 
         bridge = HttpBridge(settings.bridge_port)
         if bridge.start():
-            bridge.url_received.connect(
-                lambda url: _accept_bridge_url(window, url)
-            )
+            bridge.url_received.connect(_accept_bridge_url)
         ctx.bridge = bridge
 
     # CI/launch verification: exit cleanly shortly after the window is up.

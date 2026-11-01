@@ -12,19 +12,43 @@
       <span id="status" class="status">checking app…</span>
     </div>
   </header>
+
+  <div class="row">
+    <label for="quality">Quality</label>
+    <select id="quality">
+      <option value="best">Best available</option>
+      <option value="2160p">4K · 2160p</option>
+      <option value="1080p">1080p · Full HD</option>
+      <option value="720p">720p · HD</option>
+      <option value="480p">480p</option>
+      <option value="360p">360p · Saver</option>
+      <option value="audio-mp3">Audio · MP3</option>
+      <option value="audio-m4a">Audio · M4A</option>
+      <option value="audio-opus">Audio · Opus</option>
+    </select>
+  </div>
+
   <div id="sendPageRow" class="sendrow">
     <button id="sendPage" class="primary">⬇ Send this page to AnyDownloader</button>
   </div>
+
+  <div id="openRow" class="sendrow" hidden>
+    <button id="openApp" class="primary">🚀 Open AnyDownloader &amp; download</button>
+  </div>
+
   <section id="mediaSection" hidden>
     <h2>Media found on this page</h2>
     <ul id="mediaList"></ul>
   </section>
+
   <p id="empty" class="empty">No direct media files detected on this page.<br/>
-    For YouTube & most sites just use the big button above.</p>
+    For YouTube &amp; most sites just use the big button above.</p>
+
   <footer id="help" hidden>
-    Open AnyDownloader, go to <b>Settings → Behaviour</b> and enable
-    <b>Browser extension bridge</b>.
+    Couldn't reach the app. Install it with <b>AnyDownloader-Setup.exe</b>
+    (registers the app link), or open AnyDownloader manually and retry.
   </footer>
+
   <script src="popup.js"></script>
 </body>
 </html>

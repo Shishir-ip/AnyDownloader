@@ -50,3 +50,10 @@ li .meta { font-size: 10px; color: #8E8E93; flex: none; }
 .empty { color: #8E8E93; font-size: 12px; text-align: center; margin-top: 14px; }
 footer { margin-top: 12px; font-size: 11px; color: #FF9F0A; }
 .sent { color: #30D158; font-size: 12px; margin-top: 6px; text-align: center; }
+
+.row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.row label { font-size: 12px; color: #8E8E93; flex: none; }
+.row select {
+  flex: 1; background: #1C1C1E; color: #fff; border: 1px solid #2C2C2E;
+  border-radius: 8px; padding: 6px 8px; font: 12px "Segoe UI", sans-serif;
+}

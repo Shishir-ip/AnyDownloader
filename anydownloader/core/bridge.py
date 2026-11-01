@@ -61,8 +61,9 @@ class _Handler(BaseHTTPRequestHandler):
         if not url:
             self._send(400, {"ok": False, "error": "missing url"})
             return
+        profile = str(data.get("profile") or "").strip()
         # Signal.emit is thread-safe; queued to the GUI thread automatically.
-        self.bridge.url_received.emit(url)
+        self.bridge.url_received.emit(url, profile)
         self._send(200, {"ok": True})
 
     def log_message(self, fmt: str, *args: Any) -> None:  # silence default stderr log
@@ -72,7 +73,7 @@ class _Handler(BaseHTTPRequestHandler):
 class HttpBridge(QObject):
     """Tiny localhost HTTP endpoint owned by the GUI app."""
 
-    url_received = Signal(str)  # emit BEFORE handler replies: return True when queued
+    url_received = Signal(str, str)  # url, profile_id
 
     def __init__(self, port: int = DEFAULT_PORT) -> None:
         super().__init__()

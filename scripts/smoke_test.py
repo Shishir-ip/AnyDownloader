@@ -5,6 +5,17 @@ from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+# Never touch the user's real settings/history — force a temp data dir.
+import tempfile as _tempfile
+
+from anydownloader.core import paths as _paths
+
+_DATA = Path(_tempfile.mkdtemp())
+_paths.app_data_dir = lambda: _DATA
+_paths.settings_path = lambda: _DATA / "settings.json"
+_paths.history_path = lambda: _DATA / "history.json"
+_paths.archive_path = lambda: _DATA / "downloaded.txt"
+
 sys.argv = ["smoke"]
 
 from PySide6.QtWidgets import QApplication

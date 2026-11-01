@@ -237,6 +237,7 @@ class QueuePage(Page):
         self.pause_resume_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.pause_resume_btn.setFixedHeight(32)
         self.pause_resume_btn.clicked.connect(self._toggle_pause)
+        self.pause_resume_btn.setVisible(False)
         toolbar.addWidget(self.pause_resume_btn)
 
         clear_btn = QPushButton("Clear finished")
@@ -343,17 +344,33 @@ class QueuePage(Page):
             parts.append("queue paused")
         self.stat_active.setText(" · ".join(parts) if parts else "Idle")
         self.stat_speed.setText(speed if speed else "")
-        self.pause_resume_btn.setText("Resume queue" if stats.get("paused") else "Pause queue")
+        active = stats.get("active", 0)
+        queued = stats.get("queued", 0)
+        if stats.get("paused"):
+            self.pause_resume_btn.setText("Resume queue")
+            self.pause_resume_btn.setVisible(True)
+        elif active == 0 and queued > 0:
+            self.pause_resume_btn.setText(f"Start {queued} queued")
+            self.pause_resume_btn.setVisible(True)
+        elif active > 0:
+            self.pause_resume_btn.setText("Pause queue")
+            self.pause_resume_btn.setVisible(True)
+        else:
+            self.pause_resume_btn.setVisible(False)
 
     def _refresh_empty(self) -> None:
         self.empty.setVisible(not self._cards)
 
     def _toggle_pause(self) -> None:
-        if self.ctx.manager.queue_paused:
-            self.ctx.manager.resume_queue()
+        manager = self.ctx.manager
+        if manager.queue_paused:
+            manager.resume_queue()
+            manager.start_all()
             self.ctx.notify("Queue resumed.", "success")
+        elif manager.active_count == 0 and manager.queued_count > 0:
+            manager.start_all()
         else:
-            self.ctx.manager.pause_queue()
+            manager.pause_queue()
             self.ctx.notify("Queue paused — running downloads continue.", "info")
 
     def _clear_finished(self) -> None:
