@@ -68,8 +68,10 @@ class Settings:
     cookies_file: str = ""
     use_archive: bool = False
 
-    # Updates
+    # Updates & integrations
     check_updates_on_start: bool = True
+    bridge_enabled: bool = True
+    bridge_port: int = 7272
 
     # Window state (not user-editable)
     window_geometry: str = ""
@@ -125,6 +127,11 @@ class Settings:
         if utils.parse_rate_limit(self.speed_limit) is None:
             self.speed_limit = ""
         self.playlist_range = self.playlist_range.strip()[:40]
+        try:
+            self.bridge_port = int(self.bridge_port)
+        except (TypeError, ValueError):
+            self.bridge_port = 7272
+        self.bridge_port = utils.clamp(self.bridge_port, 1024, 65535)
         self.template = self.template.strip()[:200] or "%(title)s.%(ext)s"
 
     # ------------------------------------------------------------- conveniences

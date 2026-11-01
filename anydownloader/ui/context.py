@@ -22,3 +22,4 @@ class AppContext:
     notify: Callable[[str, str], None] = lambda text, kind: None
     window: Optional[QObject] = None
     request_quit_minimize: Callable[[], None] = lambda: None
+    bridge: Optional[QObject] = None

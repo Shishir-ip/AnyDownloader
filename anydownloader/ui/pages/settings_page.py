@@ -169,6 +169,12 @@ class SettingsPage(Page):
         clips.toggled.connect(lambda v: self._save("clipboard_watch", v))
         b_lay.addWidget(key_value_row("clipboard", "Watch clipboard for links",
                                       "Offers to download a link when you copy one", clips))
+        bridge_toggle = ToggleSwitch()
+        bridge_toggle.setChecked(s.bridge_enabled)
+        bridge_toggle.toggled.connect(lambda v: self._save("bridge_enabled", v))
+        b_lay.addWidget(key_value_row("link", "Browser extension bridge",
+                                      "Lets the companion extension send links to the app",
+                                      bridge_toggle))
         notif = ToggleSwitch()
         notif.setChecked(s.notifications)
         notif.toggled.connect(lambda v: self._save("notifications", v))

@@ -24,6 +24,20 @@ from anydownloader.ui.thumbs import ThumbnailLoader
 log = logging.getLogger(__name__)
 
 
+def _accept_bridge_url(window: "MainWindow", url: str) -> None:
+    """Queue a link arriving from the browser extension."""
+    from anydownloader.core.models import DownloadJob
+
+    if any(j.url == url and not j.state.is_terminal for j in window.ctx.manager.jobs):
+        window.notify("Already in the queue.", "info")
+        return
+    window.ctx.manager.add_urls([url])
+    if window.ctx.settings.auto_start:
+        window.ctx.manager.start_all()
+    window.notify("Sent from browser: " + url[:60], "success")
+    window.switch_page("queue")
+
+
 def _single_instance_guard() -> bool:
     """Best-effort single instance via a named mutex on Windows."""
     if sys.platform != "win32":
@@ -62,6 +76,16 @@ def main() -> int:
                      thumbnail_loader=ThumbnailLoader())
     window = MainWindow(ctx)
     window.show()
+
+    if settings.bridge_enabled:
+        from anydownloader.core.bridge import HttpBridge
+
+        bridge = HttpBridge(settings.bridge_port)
+        if bridge.start():
+            bridge.url_received.connect(
+                lambda url: _accept_bridge_url(window, url)
+            )
+        ctx.bridge = bridge
 
     # CI/launch verification: exit cleanly shortly after the window is up.
     if os.environ.get("ANYDOWNLOADER_AUTOTEST") == "1":

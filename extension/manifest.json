@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "AnyDownloader Companion",
+  "version": "1.0.0",
+  "description": "Send the video on this page straight to the AnyDownloader desktop app.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "AnyDownloader",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png"
+    }
+  },
+  "permissions": ["activeTab", "scripting", "clipboardRead"],
+  "host_permissions": ["http://127.0.0.1/*", "http://localhost/*", "<all_urls>"]
+}

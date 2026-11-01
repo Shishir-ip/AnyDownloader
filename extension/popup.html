@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <header>
+    <div class="logo"></div>
+    <div class="titles">
+      <h1>AnyDownloader</h1>
+      <span id="status" class="status">checking app…</span>
+    </div>
+  </header>
+  <div id="sendPageRow" class="sendrow">
+    <button id="sendPage" class="primary">⬇ Send this page to AnyDownloader</button>
+  </div>
+  <section id="mediaSection" hidden>
+    <h2>Media found on this page</h2>
+    <ul id="mediaList"></ul>
+  </section>
+  <p id="empty" class="empty">No direct media files detected on this page.<br/>
+    For YouTube & most sites just use the big button above.</p>
+  <footer id="help" hidden>
+    Open AnyDownloader, go to <b>Settings → Behaviour</b> and enable
+    <b>Browser extension bridge</b>.
+  </footer>
+  <script src="popup.js"></script>
+</body>
+</html>
