@@ -99,6 +99,7 @@ The companion extension lives in [`extension/`](extension) (also installed to `C
 - Pick a **quality** in the popup first — Best / 4K / 1080p / 720p / 480p / 360p / MP3 / M4A / Opus (remembered).
 - Pages with direct media files (mp4, webm, mp3, …) list each file with its own download button.
 - App closed? One click on **Open AnyDownloader & download** launches it via the `anydownloader://` protocol and the download starts automatically.
+- **Floating button** (optional, toggle in the popup): a draggable ⬇ overlay on every page — one tap sends that page to the app.
 
 **How it talks to the app:** a localhost-only bridge (`http://127.0.0.1:7272`, bound to 127.0.0.1, toggle in *Settings → Behaviour*). Nothing leaves your machine. Every accepted link is logged under `%LOCALAPPDATA%\AnyDownloader\logs\`.
 

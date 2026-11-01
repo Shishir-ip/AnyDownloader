@@ -19,6 +19,15 @@ function setStatus(text, cls) {
   statusEl.className = "status" + (cls ? " " + cls : "");
 }
 
+async function loadFloatToggle() {
+  const t = document.getElementById("floatToggle");
+  const { floatEnabled = false } = await chrome.storage.local.get("floatEnabled");
+  t.checked = !!floatEnabled;
+  t.addEventListener("change", () => {
+    chrome.storage.local.set({ floatEnabled: t.checked });
+  });
+}
+
 async function loadQuality() {
   const { profile } = await chrome.storage.local.get("profile");
   if (profile && qualitySel.querySelector(`option[value="${profile}"]`)) {
@@ -159,6 +168,7 @@ function fmtDur(s) {
 }
 
 async function main() {
+  await loadFloatToggle();
   await loadQuality();
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   currentUrl = tab && tab.url || "";
