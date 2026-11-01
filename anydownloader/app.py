@@ -9,6 +9,7 @@ from pathlib import Path
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QPixmap
+from PySide6.QtCore import QObject, QThread, Slot
 from PySide6.QtWidgets import QApplication
 
 from anydownloader import APP_NAME, __version__
@@ -23,6 +24,23 @@ from anydownloader.ui.theme import ThemeManager
 from anydownloader.ui.thumbs import ThumbnailLoader
 
 log = logging.getLogger(__name__)
+
+
+class _BridgeTarget(QObject):
+    """Receives bridge signals on the GUI thread.
+
+    Connecting the signal to a plain function would run GUI code on the HTTP
+    handler thread (direct connection) — flaky and corrupting. A QObject-bound
+    slot forces a queued connection back to the UI thread."""
+
+    def __init__(self, window: "MainWindow") -> None:
+        super().__init__()
+        self._window = window
+
+    @Slot(str, str)
+    def accept(self, url: str, profile_id: str) -> None:
+        assert QThread.currentThread() is self.thread(), "bridge slot off GUI thread"
+        _accept_bridge_url(self._window, url, profile_id)
 
 
 def _accept_bridge_url(window: "MainWindow", url: str, profile_id: str = "") -> None:
@@ -60,10 +78,11 @@ def urls_from_args(args: list) -> list:
     return urls
 
 
-def _forward_to_running_instance(urls: list, port: int) -> None:
+def _forward_to_running_instance(urls: list, port: int) -> bool:
     """Secondary instance: hand our URLs to the running app's bridge."""
     import urllib.request
 
+    delivered = 0
     for url in urls:
         try:
             req = urllib.request.Request(
@@ -72,8 +91,10 @@ def _forward_to_running_instance(urls: list, port: int) -> None:
                 headers={"Content-Type": "application/json"},
             )
             urllib.request.urlopen(req, timeout=3)
+            delivered += 1
         except Exception:
-            pass
+            log.warning("could not forward %r to running instance", url)
+    return delivered == len(urls) and delivered > 0
 
 
 def _single_instance_guard() -> bool:
@@ -90,8 +111,17 @@ def main() -> int:
     paths.setup_logging()
     if not _single_instance_guard():
         cli_urls = urls_from_args(sys.argv)
-        if cli_urls:
-            _forward_to_running_instance(cli_urls, settings.bridge_port)
+        if cli_urls and not _forward_to_running_instance(cli_urls, settings.bridge_port):
+            import ctypes
+
+            ctypes.windll.user32.MessageBoxW(
+                None,
+                "A link was received but an older AnyDownloader instance is "
+                "running and could not accept it.\n\n"
+                "Please close the old AnyDownloader (check the tray) and try again.",
+                "AnyDownloader",
+                0x30,
+            )
         print("AnyDownloader is already running.", file=sys.stderr)
         return 0
 
@@ -132,7 +162,13 @@ def main() -> int:
 
         bridge = HttpBridge(settings.bridge_port)
         if bridge.start():
-            bridge.url_received.connect(_accept_bridge_url)
+            bridge_target = _BridgeTarget(window)
+            bridge.url_received.connect(bridge_target.accept)
+        else:
+            window.notify(
+                f"Extension bridge could not start — port {settings.bridge_port} is busy. "
+                "Close any other AnyDownloader window and restart.",
+                "warning", duration_ms=10000)
         ctx.bridge = bridge
 
     # CI/launch verification: exit cleanly shortly after the window is up.

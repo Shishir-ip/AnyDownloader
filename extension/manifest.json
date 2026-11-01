@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "AnyDownloader Companion",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Send the video on this page straight to the AnyDownloader desktop app — pick quality, or launch the app if it's closed.",
   "icons": {
     "16": "icons/icon16.png",

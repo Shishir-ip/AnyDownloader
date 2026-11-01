@@ -41,13 +41,24 @@ async function pingApp(timeoutMs = 2500) {
 }
 
 async function sendUrl(url, title) {
-  const r = await fetch(BRIDGE + "/add", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ url, title, profile: qualitySel.value }),
-    signal: AbortSignal.timeout(4000),
-  });
-  if (!r.ok) throw new Error("app rejected: " + r.status);
+  const payload = JSON.stringify({ url, title, profile: qualitySel.value });
+  let lastErr = null;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const r = await fetch(BRIDGE + "/add", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: payload,
+        signal: AbortSignal.timeout(8000),
+      });
+      if (r.ok) return;
+      lastErr = new Error("app rejected: " + r.status);
+    } catch (e) {
+      lastErr = e;
+      await new Promise((res) => setTimeout(res, 400));
+    }
+  }
+  throw lastErr || new Error("send failed");
 }
 
 function flashSent(text) {

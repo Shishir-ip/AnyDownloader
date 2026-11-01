@@ -62,8 +62,14 @@ class _Handler(BaseHTTPRequestHandler):
             self._send(400, {"ok": False, "error": "missing url"})
             return
         profile = str(data.get("profile") or "").strip()
+        log.info("bridge: link received: %s (profile=%s)", url, profile or "default")
         # Signal.emit is thread-safe; queued to the GUI thread automatically.
-        self.bridge.url_received.emit(url, profile)
+        try:
+            self.bridge.url_received.emit(url, profile)
+        except Exception:
+            log.exception("bridge: emitting link failed")
+            self._send(500, {"ok": False, "error": "internal error"})
+            return
         self._send(200, {"ok": True})
 
     def log_message(self, fmt: str, *args: Any) -> None:  # silence default stderr log
@@ -80,13 +86,25 @@ class HttpBridge(QObject):
         self._port = port
         self._server: Optional[ThreadingHTTPServer] = None
 
+    @property
+    def port(self) -> int:
+        return self._port
+
     def start(self) -> bool:
         handler = type("BoundHandler", (_Handler,), {"bridge": self})
+
+        class _Server(ThreadingHTTPServer):
+            # On Windows SO_REUSEADDR would let a second app instance silently
+            # share the port with a stale one — links would randomly go to the
+            # wrong process. Strictly single-owner instead.
+            allow_reuse_address = False
+
         try:
-            self._server = ThreadingHTTPServer(("127.0.0.1", self._port), handler)
+            self._server = _Server(("127.0.0.1", self._port), handler)
         except OSError as exc:
             log.warning("bridge could not bind port %d: %s", self._port, exc)
             return False
+        self._port = self._server.server_address[1]
         self._server.daemon_threads = True
         import threading
 
