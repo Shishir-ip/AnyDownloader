@@ -29,6 +29,11 @@
     btn.addEventListener("pointerenter", () => (btn.style.opacity = "1"));
     btn.addEventListener("pointerleave", () => (btn.style.opacity = "0.92"));
     document.documentElement.appendChild(btn);
+    try {
+      btn.animate(
+        [{ transform: "scale(1)" }, { transform: "scale(1.07)" }, { transform: "scale(1)" }],
+        { duration: 2400, iterations: Infinity, easing: "ease-in-out" });
+    } catch {}
     restorePos(btn);
     wireDrag(btn);
   }
@@ -107,7 +112,40 @@
     } catch {
       msg = "App not running";
     }
+    if (ok) flyToDownloads(btn);
     bubble(btn, msg, ok);
+  }
+
+  /* A little file that arcs to the browser's download button (top-right). */
+  function flyToDownloads(btn) {
+    try {
+      const fly = document.createElement("div");
+      fly.innerHTML =
+        '<svg width="36" height="44" viewBox="0 0 36 44">' +
+        '<path d="M4 4a3 3 0 0 1 3-3h16l9 9v30a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3z" ' +
+        'fill="#fff" stroke="#c9c9d1" stroke-width="1.2"/>' +
+        '<path d="M23 1l9 9h-7a2 2 0 0 1-2-2z" fill="#e6e6ec" stroke="#c9c9d1" ' +
+        'stroke-width="1"/>' +
+        '<g stroke="#0A84FF" stroke-width="2.4" stroke-linecap="round" ' +
+        'stroke-linejoin="round" fill="none">' +
+        '<path d="M18 16v12"/><path d="M12.5 23l5.5 5.5L23.5 23"/></g></svg>';
+      Object.assign(fly.style, {
+        position: "fixed", zIndex: String(Z + 1),
+        left: btn.offsetLeft + 8 + "px", top: btn.offsetTop + 4 + "px",
+        pointerEvents: "none", filter: "drop-shadow(0 3px 8px rgba(0,0,0,.3))",
+      });
+      document.documentElement.appendChild(fly);
+      const dx = window.innerWidth - 46 - btn.offsetLeft - 8;
+      const dy = 12 - btn.offsetTop - 4;
+      fly.animate(
+        [
+          { transform: "translate(0,0) scale(1) rotate(0deg)", opacity: 1 },
+          { transform: `translate(${dx * 0.45}px, ${dy * 0.28 - 70}px) scale(0.92) rotate(-9deg)`, opacity: 1, offset: 0.45 },
+          { transform: `translate(${dx}px, ${dy}px) scale(0.3) rotate(7deg)`, opacity: 0.15 },
+        ],
+        { duration: 900, easing: "cubic-bezier(.42,.05,.58,1)" },
+      ).onfinish = () => fly.remove();
+    } catch {}
   }
 
   function bubble(btn, text, ok) {

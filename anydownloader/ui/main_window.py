@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
 
 from anydownloader import APP_NAME, APP_TAGLINE, __version__
 from anydownloader.core import utils
+from anydownloader.core.models import JobState
 from anydownloader.core.manager import DownloadManager
 from anydownloader.ui import appicon, icons
 from anydownloader.ui.context import AppContext
@@ -180,8 +181,8 @@ class MainWindow(QMainWindow):
         menu.addAction(quit_action)
         self.tray.setContextMenu(menu)
         self.tray.activated.connect(self._tray_activated)
-        if self.ctx.settings.minimize_to_tray:
-            self.tray.show()
+        # Always visible: it powers background notifications and quick controls.
+        self.tray.show()
 
     def _tray_activated(self, reason) -> None:
         if reason == QSystemTrayIcon.ActivationReason.DoubleClick:
@@ -255,6 +256,19 @@ class MainWindow(QMainWindow):
             self._last_taskbar = 0
 
     def _on_job_state(self, job) -> None:
+        # Background notification: finished/failed while the window is hidden
+        # or minimized -> per-video tray message.
+        if self.ctx.settings.notifications and (
+            not self.isVisible() or self.isMinimized()
+        ):
+            if job.state is JobState.COMPLETED:
+                self.tray.showMessage(
+                    "Download complete ✓", job.display_title or job.url,
+                    QSystemTrayIcon.MessageIcon.Information, 4500)
+            elif job.state is JobState.FAILED:
+                self.tray.showMessage(
+                    "Download failed", job.display_title or job.url,
+                    QSystemTrayIcon.MessageIcon.Critical, 4500)
         hwnd = int(self.winId())
         if job.state.value == "downloading" and job.total_bytes:
             self._taskbar.set_progress(hwnd, int(job.downloaded_bytes), int(job.total_bytes))
