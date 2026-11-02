@@ -254,6 +254,20 @@ class _YtdlpLogger:
 
 
 # -------------------------------------------------------------------- probing
+# YouTube's bot-check waves: retrying with alternate player clients usually
+# gets through without needing cookies.
+_FALLBACK_EXTRACTOR_ARGS = [
+    {"youtube": {"player_client": ["android_vr"]}},
+    {"youtube": {"player_client": ["tv"]}},
+    {"youtube": {"player_client": ["web_safari"]}},
+]
+
+
+def is_bot_check_error(message: str) -> bool:
+    m = (message or "").lower()
+    return "sign in to confirm you" in m and "not a bot" in m
+
+
 def probe(url: str, *, proxy: str = "", cookies_browser: str = "",
           cookies_file: str = "") -> dict[str, Any]:
     """Fetch metadata for preview. Returns a simplified dict. Raises on error."""
@@ -266,10 +280,27 @@ def probe(url: str, *, proxy: str = "", cookies_browser: str = "",
         "noplaylist": True,
     })
     with yt_dlp.YoutubeDL(opts) as ydl:
-        raw = ydl.extract_info(url, download=False)
-    if not raw:
-        raise RuntimeError("Could not extract video information from this link.")
-    return _summarize_info(ydl.sanitize_info(raw))
+        try:
+            raw = ydl.extract_info(url, download=False)
+        except Exception as exc:
+            if not is_bot_check_error(str(exc)):
+                raise
+            log.info("probe hit YouTube bot-check; retrying with alternate clients")
+        else:
+            if raw:
+                return _summarize_info(ydl.sanitize_info(raw))
+            raw = None
+    for extra in _FALLBACK_EXTRACTOR_ARGS:
+        opts2 = dict(opts)
+        opts2["extractor_args"] = extra
+        with yt_dlp.YoutubeDL(opts2) as ydl:
+            try:
+                raw = ydl.extract_info(url, download=False)
+            except Exception:
+                continue
+        if raw:
+            return _summarize_info(ydl.sanitize_info(raw))
+    raise RuntimeError("Could not extract video information from this link.")
 
 
 def _summarize_info(info: dict[str, Any]) -> dict[str, Any]:
@@ -393,11 +424,36 @@ class DownloadWorker(QThread):
         opts["progress_hooks"] = [self._progress_hook]
         opts["postprocessor_hooks"] = [self._pp_hook]
         ydl = yt_dlp.YoutubeDL(opts)
+        attempts: list[Optional[dict]] = [None] + [
+            dict(a) for a in _FALLBACK_EXTRACTOR_ARGS
+        ]
+        last_error: Optional[Exception] = None
+        info = {}
         try:
             job.state = JobState.DOWNLOADING
             self.state_changed.emit(job)
-            info = ydl.extract_info(job.url, download=True)
-            info = ydl.sanitize_info(info) if info else {}
+            for extra in attempts:
+                if extra is not None:
+                    if job.cancel_event.is_set():
+                        raise DownloadCancelled("Cancelled by user")
+                    log.info("retrying %s with alternate player clients", job.url)
+                    opts = dict(opts)
+                    opts["extractor_args"] = extra
+                    ydl = yt_dlp.YoutubeDL(opts)
+                try:
+                    raw = ydl.extract_info(job.url, download=True)
+                except DownloadCancelled:
+                    raise
+                except Exception as exc:
+                    last_error = exc
+                    if not is_bot_check_error(str(exc)):
+                        raise
+                    continue
+                info = ydl.sanitize_info(raw) if raw else {}
+                last_error = None
+                break
+            if last_error is not None:
+                raise last_error
             if info:
                 self._absorb_info(info)
                 outputs = self._collect_filepaths(info)
@@ -453,6 +509,11 @@ def _clean_error(exc: Exception) -> str:
     hints = {
         "private video": "This video is private.",
         "sign in to confirm your age": "Age-restricted video — enable cookies from your browser in Settings → Network.",
+        "sign in to confirm you're not a bot": (
+            "YouTube is asking this connection to prove it's not a bot. "
+            "Try again in a few minutes, or enable Settings → Network → "
+            "Cookies from browser — that usually fixes it."
+        ),
         "http error 429": "Rate limited by the site — wait a few minutes and retry.",
         "unsupported url": "This website is not supported yet.",
         "is not a valid url": "That does not look like a valid link.",

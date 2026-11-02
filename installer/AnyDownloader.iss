@@ -1,6 +1,6 @@
 ; AnyDownloader Windows installer (Inno Setup 7)
 #define AppName "AnyDownloader"
-#define AppVersion "1.0.6"
+#define AppVersion "1.0.7"
 #define AppPublisher "Shishir Islam"
 #define AppURL "https://github.com/Shishir-ip/AnyDownloader"
 #define AppExe "AnyDownloader.exe"

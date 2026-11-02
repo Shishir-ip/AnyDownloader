@@ -156,3 +156,23 @@ class TestFfmpeg:
         opts = engine.build_download_options(job)
         keys = [pp["key"] for pp in opts.get("postprocessors", [])]
         assert ("EmbedThumbnail" in keys) == engine.ffprobe_available()
+
+
+class TestBotCheck:
+    def test_marker_detection(self):
+        from anydownloader.core.engine import is_bot_check_error
+
+        assert is_bot_check_error(
+            "ERROR: [youtube] x: Sign in to confirm you're not a bot.")
+        assert not is_bot_check_error("ERROR: unsupported url")
+
+    def test_fallback_clients_defined(self):
+        from anydownloader.core.engine import _FALLBACK_EXTRACTOR_ARGS
+
+        assert _FALLBACK_EXTRACTOR_ARGS, "need at least one fallback client set"
+
+    def test_friendly_bot_hint(self):
+        class E(Exception):
+            pass
+        msg = engine._clean_error(E("ERROR: [youtube] x: Sign in to confirm you're not a bot."))
+        assert "Cookies from browser" in msg
